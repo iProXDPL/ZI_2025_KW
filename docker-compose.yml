@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  Backend:
+    build:
+      context: ./Backend
+    container_name: Backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    command: npm run dev
+
+  Frontend:
+    build:
+      context: ./Frontend
+    container_name: Frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+    command: npm start
