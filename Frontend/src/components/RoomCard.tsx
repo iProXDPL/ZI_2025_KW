@@ -1,17 +1,13 @@
-import React from 'react';
-import { DoorOpenIcon, UsersIcon, LayersIcon, WrenchIcon } from 'lucide-react';
+import React from "react";
+import { DoorOpenIcon, UsersIcon, LayersIcon, WrenchIcon } from "lucide-react";
 interface RoomCardProps {
   name: string;
   capacity: number;
   floor: number;
 }
-export function RoomCard({
-  name,
-  capacity,
-  floor,
-  equipment
-}: RoomCardProps) {
-  return <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
+export function RoomCard({ name, capacity, floor }: RoomCardProps) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
       <div className="flex items-start gap-4">
         <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
           <DoorOpenIcon className="w-7 h-7 text-gray-700" />
@@ -30,5 +26,6 @@ export function RoomCard({
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 }

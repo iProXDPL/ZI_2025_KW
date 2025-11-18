@@ -15,7 +15,6 @@ const generateToken = (user: IUser): string => {
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
-
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing)
       return res.status(400).json({ message: "Email już istnieje" });
@@ -69,6 +68,15 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     if (!user)
       return res.status(404).json({ message: "Użytkownik nie znaleziony" });
     res.json({ user });
+  } catch {
+    res.status(500).json({ message: "Błąd serwera" });
+  }
+};
+
+export const users = async (req: AuthRequest, res: Response) => {
+  try {
+    const users = await User.find().select("-password").select("-__v");
+    res.json({ users });
   } catch {
     res.status(500).json({ message: "Błąd serwera" });
   }
