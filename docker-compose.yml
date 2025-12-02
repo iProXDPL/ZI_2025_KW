@@ -6,7 +6,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./backend:/app
+      - ./Backend:/app
       - /app/node_modules
     env_file:
       - .env
@@ -19,10 +19,8 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend:/app
+      - ./Frontend:/app
       - /app/node_modules
     env_file:
       - .env
-    environment:
-      - REACT_APP_API_URL=${API_BASE_URL}
     command: npm run dev
