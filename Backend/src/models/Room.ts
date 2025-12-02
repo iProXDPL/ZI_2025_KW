@@ -5,6 +5,7 @@ export interface IRoom extends Document {
   building: mongoose.Types.ObjectId;
   capacity?: number;
   type?: string;
+  floor?: number;
   createdAt: Date;
 }
 
@@ -26,13 +27,15 @@ const roomSchema = new Schema<IRoom>({
     type: String,
     trim: true,
   },
+  floor: {
+    type: Number,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-// Ensure room name is unique per building
 roomSchema.index({ name: 1, building: 1 }, { unique: true });
 
 export default mongoose.model<IRoom>("Room", roomSchema);

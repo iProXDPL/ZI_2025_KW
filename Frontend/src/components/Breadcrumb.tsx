@@ -23,7 +23,7 @@ export function Breadcrumb({
         {selectedBuilding && <>
             <ChevronRightIcon className="w-4 h-4 text-gray-400" />
             <span className={currentStep === 'rooms' ? 'font-semibold text-black' : 'text-gray-600'}>
-              {selectedBuilding.title}
+              {selectedBuilding.name}
             </span>
           </>}
         {selectedRoom && <>

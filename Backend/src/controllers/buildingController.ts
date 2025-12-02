@@ -12,7 +12,7 @@ export const getBuildings = async (req: Request, res: Response) => {
 
 export const createBuilding = async (req: Request, res: Response) => {
   try {
-    const { name, address } = req.body;
+    const { name, address, description, floors } = req.body;
     
     if (!name) {
       return res.status(400).json({ message: "Nazwa budynku jest wymagana" });
@@ -23,7 +23,7 @@ export const createBuilding = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Budynek o tej nazwie już istnieje" });
     }
     
-    const building = new Building({ name, address });
+    const building = new Building({ name, address, description, floors });
     await building.save();
     
     res.status(201).json(building);

@@ -7,7 +7,7 @@ export interface AuthRequest extends Request {
 
 export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: "Brak tokena" });
+  if (!authHeader) return res.status(401).json({ message: "Musisz być zalogowany, aby wykonać tę akcję" });
 
   const [bearer, token] = authHeader.split(" ");
   if (bearer !== "Bearer" || !token) {

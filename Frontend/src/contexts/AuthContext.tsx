@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const API_BASE_URL = "http://localhost:3000/api";
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000") + "/api";
   // Funkcja do zapisywania tokena
   const saveToken = (newToken: string) => {
     setToken(newToken);

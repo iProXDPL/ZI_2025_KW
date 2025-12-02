@@ -1,19 +1,60 @@
 import React, { useState } from "react";
 import { XIcon } from "lucide-react";
+
+const API_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000") + "/api";
+
 interface AddRoomModalProps {
+  buildingId: string;
   buildingName: string;
   onClose: () => void;
+  onSuccess: (room: any) => void;
 }
-export function AddRoomModal({ buildingName, onClose }: AddRoomModalProps) {
+
+export function AddRoomModal({ buildingId, buildingName, onClose, onSuccess }: AddRoomModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     capacity: "",
     floor: "",
   });
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Nowa sala dodana: ${formData.name} w budynku ${buildingName}`);
-    onClose();
+    setLoading(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/rooms`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          buildingId: buildingId,
+          capacity: parseInt(formData.capacity),
+          type: "Sala",
+          floor: parseInt(formData.floor)
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create room");
+      }
+
+      const newRoom = await response.json();
+      onSuccess(newRoom);
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Błąd podczas dodawania sali');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,6 +69,9 @@ export function AddRoomModal({ buildingName, onClose }: AddRoomModalProps) {
             <XIcon className="w-5 h-5" />
           </button>
         </div>
+
+        {error && <div className="mb-4 text-red-500 text-sm">{error}</div>}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">Budynek</label>
@@ -100,9 +144,10 @@ export function AddRoomModal({ buildingName, onClose }: AddRoomModalProps) {
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
+              disabled={loading}
+              className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
-              Dodaj
+              {loading ? 'Dodawanie...' : 'Dodaj'}
             </button>
           </div>
         </form>

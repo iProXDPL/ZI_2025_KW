@@ -13,7 +13,7 @@ export const getRooms = async (req: Request, res: Response) => {
 
 export const createRoom = async (req: Request, res: Response) => {
   try {
-    const { name, buildingId, capacity, type } = req.body;
+    const { name, buildingId, capacity, type, floor } = req.body;
     
     if (!name || !buildingId) {
       return res.status(400).json({ message: "Nazwa sali i ID budynku są wymagane" });
@@ -33,7 +33,8 @@ export const createRoom = async (req: Request, res: Response) => {
       name,
       building: buildingId,
       capacity,
-      type
+      type,
+      floor
     });
     await room.save();
     

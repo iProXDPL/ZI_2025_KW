@@ -1,86 +1,93 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BuildingCard } from "../components/BuildingCard";
 import { RoomCard } from "../components/RoomCard";
 import { DateTimeSelection } from "../components/DateTimeSelection";
 import { Breadcrumb } from "../components/Breadcrumb";
 import { PlusIcon } from "lucide-react";
+import { AddRoomModal } from "../components/AddRoomModal";
+import { AddBuildingModal } from "../components/AddBuildingModal";
 
-interface BuildingsPageProps {
-  onShowAddBuildingModal: () => void;
-  onShowAddRoomModal: () => void;
+const API_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000") + "/api";
+
+export interface Building {
+  _id: string;
+  name: string;
+  description?: string;
+  address?: string;
+  floors?: number;
+  createdAt: string;
 }
 
-export function BuildingsPage({
-  onShowAddBuildingModal,
-  onShowAddRoomModal,
-}: BuildingsPageProps) {
+export interface Room {
+  _id: string;
+  name: string;
+  building: Building | string;
+  capacity?: number;
+  type?: string;
+  floor?: number;
+  createdAt: string;
+}
+
+export function BuildingsPage() {
   const [currentStep, setCurrentStep] = useState<
     "buildings" | "rooms" | "datetime"
   >("buildings");
-  const [selectedBuilding, setSelectedBuilding] = useState<any>(null);
-  const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddRoomModal, setShowAddRoomModal] = useState(false);
+  const [showAddBuildingModal, setShowAddBuildingModal] = useState(false);
 
-  const buildings = [
-    {
-      id: 1,
-      title: "Budynek Główny",
-      description: "Główny budynek biurowy z salami konferencyjnymi",
-      address: "ul. Główna 1, Warszawa",
-      floors: 5,
-    },
-    {
-      id: 2,
-      title: "Budynek Techniczny",
-      description: "Budynek z laboratoriami i salami szkoleniowymi",
-      address: "ul. Techniczna 10, Warszawa",
-      floors: 3,
-    },
-    {
-      id: 3,
-      title: "Centrum Konferencyjne",
-      description: "Nowoczesne centrum z dużymi salami konferencyjnymi",
-      address: "al. Konferencyjna 25, Warszawa",
-      floors: 2,
-    },
-  ];
+  useEffect(() => {
+    fetchBuildings();
+  }, []);
 
-  const rooms = [
-    {
-      id: 1,
-      name: "Sala Konferencyjna A",
-      capacity: 50,
-      floor: 2,
-      equipment: ["Projektor", "Tablica", "Klimatyzacja"],
-    },
-    {
-      id: 2,
-      name: "Sala Szkoleniowa B",
-      capacity: 30,
-      floor: 3,
-      equipment: ["Projektor", "Komputery", "Klimatyzacja"],
-    },
-    {
-      id: 3,
-      name: "Sala Warsztatowa C",
-      capacity: 20,
-      floor: 1,
-      equipment: ["Tablica", "Flipchart"],
-    },
-    {
-      id: 4,
-      name: "Sala Spotkań D",
-      capacity: 15,
-      floor: 2,
-      equipment: ["TV", "Videokonferencja"],
-    },
-  ];
+  useEffect(() => {
+    if (selectedBuilding) {
+      fetchRooms();
+    }
+  }, [selectedBuilding]);
 
-  const handleBuildingSelect = (building: any) => {
+  const fetchBuildings = async () => {
+    try {
+      const response = await fetch(`${API_URL}/buildings`);
+      if (!response.ok) throw new Error("Failed to fetch buildings");
+      const data = await response.json();
+      setBuildings(data);
+    } catch (error) {
+      console.error("Failed to fetch buildings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRooms = async () => {
+    try {
+      const response = await fetch(`${API_URL}/rooms`);
+      if (!response.ok) throw new Error("Failed to fetch rooms");
+      const data = await response.json();
+      
+      if (selectedBuilding) {
+        const buildingRooms = data.filter((room: Room) => 
+          typeof room.building === 'string' 
+            ? room.building === selectedBuilding._id 
+            : (room.building as Building)._id === selectedBuilding._id
+        );
+        setRooms(buildingRooms);
+      }
+    } catch (error) {
+      console.error("Failed to fetch rooms:", error);
+    }
+  };
+
+  const handleBuildingSelect = (building: Building) => {
     setSelectedBuilding(building);
     setCurrentStep("rooms");
   };
 
-  const handleRoomSelect = (room: any) => {
+  const handleRoomSelect = (room: Room) => {
     setSelectedRoom(room);
     setCurrentStep("datetime");
   };
@@ -95,6 +102,18 @@ export function BuildingsPage({
     }
   };
 
+  const handleBuildingAdded = (newBuilding: Building) => {
+    setBuildings([...buildings, newBuilding]);
+  };
+
+  const handleRoomAdded = (newRoom: Room) => {
+    setRooms([...rooms, newRoom]);
+  };
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Ładowanie...</div>;
+  }
+
   return (
     <>
       <Breadcrumb
@@ -108,7 +127,7 @@ export function BuildingsPage({
         <BuildingsStep
           buildings={buildings}
           onBuildingSelect={handleBuildingSelect}
-          onShowAddBuildingModal={onShowAddBuildingModal}
+          onShowAddBuildingModal={() => setShowAddBuildingModal(true)}
         />
       )}
 
@@ -117,20 +136,40 @@ export function BuildingsPage({
           selectedBuilding={selectedBuilding}
           rooms={rooms}
           onRoomSelect={handleRoomSelect}
-          onShowAddRoomModal={onShowAddRoomModal}
+          onShowAddRoomModal={() => setShowAddRoomModal(true)}
         />
       )}
 
       {currentStep === "datetime" && selectedRoom && (
         <DateTimeSelection building={selectedBuilding} room={selectedRoom} />
       )}
+
+      {showAddRoomModal && selectedBuilding && (
+        <AddRoomModal 
+          onClose={() => setShowAddRoomModal(false)} 
+          buildingId={selectedBuilding._id}
+          buildingName={selectedBuilding.name}
+          onSuccess={handleRoomAdded}
+        />
+      )}
+
+      {showAddBuildingModal && (
+        <AddBuildingModal 
+          title=""
+          description=""
+          address=""
+          floors=""
+          onClose={() => setShowAddBuildingModal(false)}
+          onSuccess={handleBuildingAdded}
+        />
+      )}
     </>
   );
 }
 
 interface BuildingsStepProps {
-  buildings: any[];
-  onBuildingSelect: (building: any) => void;
+  buildings: Building[];
+  onBuildingSelect: (building: Building) => void;
   onShowAddBuildingModal: () => void;
 }
 
@@ -156,21 +195,38 @@ function BuildingsStep({
           Dodaj Budynek
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {buildings.map((building) => (
-          <div key={building.id} onClick={() => onBuildingSelect(building)}>
-            <BuildingCard {...building} />
-          </div>
-        ))}
-      </div>
+      {buildings.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
+          <p className="text-gray-500 mb-4">Brak dostępnych budynków</p>
+          <button
+            onClick={onShowAddBuildingModal}
+            className="text-black font-medium hover:underline"
+          >
+            Dodaj pierwszy budynek
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {buildings.map((building) => (
+            <div key={building._id} onClick={() => onBuildingSelect(building)}>
+              <BuildingCard 
+                title={building.name} 
+                description={building.address || "Brak adresu"} 
+                address={building.address || ""} 
+                floors={building.floors || 0} 
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
 
 interface RoomsStepProps {
-  selectedBuilding: any;
-  rooms: any[];
-  onRoomSelect: (room: any) => void;
+  selectedBuilding: Building;
+  rooms: Room[];
+  onRoomSelect: (room: Room) => void;
   onShowAddRoomModal: () => void;
 }
 
@@ -186,7 +242,7 @@ function RoomsStep({
         <div>
           <h1 className="text-3xl font-bold mb-2">Wybierz Salę</h1>
           <p className="text-gray-600">
-            Wybierz salę w budynku {selectedBuilding.title}
+            Wybierz salę w budynku {selectedBuilding.name}
           </p>
         </div>
         <button
@@ -197,13 +253,29 @@ function RoomsStep({
           Dodaj Salę
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms.map((room) => (
-          <div key={room.id} onClick={() => onRoomSelect(room)}>
-            <RoomCard {...room} />
-          </div>
-        ))}
-      </div>
+      {rooms.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
+          <p className="text-gray-500 mb-4">Brak dostępnych sal w tym budynku</p>
+          <button
+            onClick={onShowAddRoomModal}
+            className="text-black font-medium hover:underline"
+          >
+            Dodaj pierwszą salę
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {rooms.map((room) => (
+            <div key={room._id} onClick={() => onRoomSelect(room)}>
+              <RoomCard 
+                name={room.name}
+                capacity={room.capacity || 0}
+                floor={0} 
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
