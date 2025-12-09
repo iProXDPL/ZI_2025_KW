@@ -72,7 +72,7 @@ Niezależnie od wybranej metody uruchomienia, musisz skonfigurować plik ze zmie
 
 ---
 
-## Uruchomienie Aplikacji
+## Uruchomienie Aplikacji (developerskie)
 
 Możesz wybrać jedną z dwóch metod uruchomienia.
 
