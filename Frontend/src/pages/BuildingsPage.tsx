@@ -149,6 +149,7 @@ export function BuildingsPage() {
           onClose={() => setShowAddRoomModal(false)} 
           buildingId={selectedBuilding._id}
           buildingName={selectedBuilding.name}
+          maxFloors={selectedBuilding.floors || 0}
           onSuccess={handleRoomAdded}
         />
       )}
@@ -270,7 +271,7 @@ function RoomsStep({
               <RoomCard 
                 name={room.name}
                 capacity={room.capacity || 0}
-                floor={0} 
+                floor={room.floor || 0} 
               />
             </div>
           ))}

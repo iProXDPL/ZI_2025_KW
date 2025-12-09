@@ -6,11 +6,12 @@ const API_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000") +
 interface AddRoomModalProps {
   buildingId: string;
   buildingName: string;
+  maxFloors: number;
   onClose: () => void;
   onSuccess: (room: any) => void;
 }
 
-export function AddRoomModal({ buildingId, buildingName, onClose, onSuccess }: AddRoomModalProps) {
+export function AddRoomModal({ buildingId, buildingName, maxFloors, onClose, onSuccess }: AddRoomModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     capacity: "",
@@ -23,6 +24,12 @@ export function AddRoomModal({ buildingId, buildingName, onClose, onSuccess }: A
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    if (parseInt(formData.floor) > maxFloors) {
+      setError(`Piętro nie może być wyższe niż ${maxFloors}`);
+      setLoading(false);
+      return;
+    }
 
     try {
       const token = localStorage.getItem("token");
@@ -118,7 +125,7 @@ export function AddRoomModal({ buildingId, buildingName, onClose, onSuccess }: A
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Piętro</label>
+            <label className="block text-sm font-medium mb-2">Piętro (max: {maxFloors})</label>
             <input
               type="number"
               value={formData.floor}
@@ -129,9 +136,10 @@ export function AddRoomModal({ buildingId, buildingName, onClose, onSuccess }: A
                 })
               }
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black"
-              placeholder="np. 2"
+              placeholder={`np. 2 (max ${maxFloors})`}
               required
               min="0"
+              max={maxFloors}
             />
           </div>
           <div className="flex gap-3 pt-4">
