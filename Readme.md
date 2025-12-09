@@ -1,6 +1,6 @@
 # System Rezerwacji Sal - Projekt ZI 2025
 
-Kompleksowa aplikacja webowa do zarządzania salami i rezerwacjami. System umożliwia użytkownikom przeglądanie budynków i sal, sprawdzanie dostępności terminów w czasie rzeczywistym oraz dokonywanie rezerwacji.
+Aplikacja webowa do zarządzania salami i rezerwacjami. System umożliwia użytkownikom przeglądanie budynków i sal, sprawdzanie dostępności terminów w czasie rzeczywistym oraz dokonywanie rezerwacji.
 
 ## Spis Treści
 1.  [Technologie](#technologie)
