@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { CalendarIcon, ClockIcon, AlertCircleIcon, FileTextIcon } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { CalendarIcon, ClockIcon, AlertCircleIcon, FileTextIcon, LoaderIcon } from "lucide-react";
+
+const API_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000") + "/api";
 
 interface DateTimeSelectionProps {
   building: any;
@@ -7,6 +9,7 @@ interface DateTimeSelectionProps {
 }
 
 interface OccupiedSlot {
+  _id: string;
   date: string;
   startHour: string;
   startMinute: string;
@@ -17,53 +20,67 @@ interface OccupiedSlot {
 }
 
 export function DateTimeSelection({ building, room }: DateTimeSelectionProps) {
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
   const [startHour, setStartHour] = useState("");
   const [startMinute, setStartMinute] = useState("00");
   const [endHour, setEndHour] = useState("");
   const [endMinute, setEndMinute] = useState("00");
   const [title, setTitle] = useState("");
-
-  // Mock data matching backend structure conceptually
-  const occupiedSlots: OccupiedSlot[] = [
-    {
-      date: "2024-12-20",
-      startHour: "09",
-      startMinute: "00",
-      endHour: "10",
-      endMinute: "30",
-      user: "Jan Kowalski",
-      title: "Spotkanie zespołu",
-    },
-    {
-      date: "2024-12-20",
-      startHour: "14",
-      startMinute: "00",
-      endHour: "15",
-      endMinute: "00",
-      user: "Anna Nowak",
-      title: "Rekrutacja",
-    },
-    {
-      date: "2024-12-21",
-      startHour: "11",
-      startMinute: "00",
-      endHour: "12",
-      endMinute: "30",
-      user: "Piotr Wiśniewski",
-    },
-  ];
+  
+  const [occupiedSlots, setOccupiedSlots] = useState<OccupiedSlot[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const hours = Array.from({ length: 14 }, (_, i) => (i + 8).toString().padStart(2, "0")); // 08:00 - 21:00
-  const minutes = ["00", "15", "30", "45"];
+  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"));
 
-  const occupiedSlotsForDate = useMemo(() => {
-    return occupiedSlots.filter((slot) => slot.date === selectedDate).sort((a, b) => {
-        const timeA = parseInt(a.startHour) * 60 + parseInt(a.startMinute);
-        const timeB = parseInt(b.startHour) * 60 + parseInt(b.startMinute);
-        return timeA - timeB;
-    });
-  }, [selectedDate]);
+  useEffect(() => {
+    if (selectedDate && room._id) {
+      setOccupiedSlots([]); // Clear old slots immediately on date change
+      fetchReservations();
+    } else {
+      setOccupiedSlots([]);
+    }
+  }, [selectedDate, room._id]);
+
+  const fetchReservations = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/reservations/${room._id}?date=${selectedDate}`);
+      if (!response.ok) throw new Error("Failed to fetch reservations");
+      const data = await response.json();
+      
+      const parsedSlots = data.map((res: any) => {
+        const start = new Date(res.startTime);
+        const end = new Date(res.endTime);
+        
+        return {
+          _id: res._id,
+          date: start.toISOString().split('T')[0],
+          startHour: start.getHours().toString().padStart(2, '0'),
+          startMinute: start.getMinutes().toString().padStart(2, '0'),
+          endHour: end.getHours().toString().padStart(2, '0'),
+          endMinute: end.getMinutes().toString().padStart(2, '0'),
+          user: res.user?.name || "Nieznany",
+          title: res.title
+        };
+      });
+
+      setOccupiedSlots(parsedSlots);
+    } catch (err) {
+      console.error(err);
+      setError("Nie udało się pobrać rezerwacji");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const isTimeRangeOccupied = (sHour: string, sMin: string, eHour: string, eMin: string): boolean => {
     if (!selectedDate || !sHour || !eHour) return false;
@@ -71,13 +88,12 @@ export function DateTimeSelection({ building, room }: DateTimeSelectionProps) {
     const start = parseInt(sHour) * 60 + parseInt(sMin);
     const end = parseInt(eHour) * 60 + parseInt(eMin);
 
-    if (start >= end) return true; // Invalid range is considered "occupied/blocked"
+    if (start >= end) return true;
 
-    return occupiedSlotsForDate.some((slot) => {
+    return occupiedSlots.some((slot) => {
       const slotStart = parseInt(slot.startHour) * 60 + parseInt(slot.startMinute);
       const slotEnd = parseInt(slot.endHour) * 60 + parseInt(slot.endMinute);
       
-      // Overlap logic: (StartA < EndB) and (EndA > StartB)
       return start < slotEnd && end > slotStart;
     });
   };
@@ -92,17 +108,52 @@ export function DateTimeSelection({ building, room }: DateTimeSelectionProps) {
   const isCurrentSelectionOccupied = useMemo(() => {
     if (isCurrentSelectionInvalid) return false;
     return isTimeRangeOccupied(startHour, startMinute, endHour, endMinute);
-  }, [startHour, startMinute, endHour, endMinute, isCurrentSelectionInvalid, occupiedSlotsForDate]);
+  }, [startHour, startMinute, endHour, endMinute, isCurrentSelectionInvalid, occupiedSlots]);
 
-  const handleSubmit = () => {
-    if (selectedDate && startHour && endHour && title) {
-      if (isCurrentSelectionOccupied || isCurrentSelectionInvalid) {
-        return;
+  const handleSubmit = async () => {
+    if (!selectedDate || !startHour || !endHour || !title) return;
+    if (isCurrentSelectionOccupied || isCurrentSelectionInvalid) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Musisz być zalogowany, aby zarezerwować salę!");
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/reservations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          roomId: room._id,
+          date: selectedDate,
+          start: `${startHour}:${startMinute}`,
+          end: `${endHour}:${endMinute}`,
+          title
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Błąd podczas rezerwacji");
       }
-      // Mock submission
-      alert(
-        `Symulacja wysłania rezerwacji:\nBudynek: ${building.name}\nSala: ${room.name}\nData: ${selectedDate}\nGodzina: ${startHour}:${startMinute} - ${endHour}:${endMinute}\nTytuł: ${title}`
-      );
+      setTitle("");
+      setStartHour("");
+      setStartMinute("00");
+      setEndHour("");
+      setEndMinute("00");
+      fetchReservations();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Wystąpił błąd");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -121,6 +172,13 @@ export function DateTimeSelection({ building, room }: DateTimeSelectionProps) {
           <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
             <h2 className="text-xl font-semibold mb-6">Szczegóły Rezerwacji</h2>
             
+            {error && (
+               <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                  <AlertCircleIcon className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-800">{error}</p>
+               </div>
+            )}
+
             <div className="space-y-6">
               {/* Date Selection */}
               <div>
@@ -234,10 +292,15 @@ export function DateTimeSelection({ building, room }: DateTimeSelectionProps) {
 
               <button
                 onClick={handleSubmit}
-                disabled={!selectedDate || !startHour || !endHour || !title || isCurrentSelectionOccupied || isCurrentSelectionInvalid}
-                className="w-full bg-black text-white py-4 rounded-xl font-medium hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-[0.99] transform"
+                disabled={!selectedDate || !startHour || !endHour || !title || isCurrentSelectionOccupied || isCurrentSelectionInvalid || submitting || loading}
+                className="w-full bg-black text-white py-4 rounded-xl font-medium hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-[0.99] transform flex justify-center items-center gap-2"
               >
-                Zatwierdź Rezerwację
+                {submitting ? (
+                    <>
+                        <LoaderIcon className="w-5 h-5 animate-spin" />
+                        Rezerwowanie...
+                    </>
+                ) : "Zatwierdź Rezerwację"}
               </button>
             </div>
           </div>
@@ -256,16 +319,20 @@ export function DateTimeSelection({ building, room }: DateTimeSelectionProps) {
                 <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p>Wybierz datę, aby zobaczyć plan dnia</p>
               </div>
-            ) : occupiedSlotsForDate.length === 0 ? (
+            ) : loading ? (
+                 <div className="flex justify-center py-12">
+                     <LoaderIcon className="w-8 h-8 animate-spin text-gray-400" />
+                 </div>
+            ) : occupiedSlots.length === 0 ? (
               <div className="text-center py-12 text-green-600 bg-green-50 rounded-xl border border-green-100">
                 <p className="font-medium">Cały dzień wolny</p>
                 <p className="text-sm opacity-80 mt-1">Brak zaplanowanych spotkań</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {occupiedSlotsForDate.map((slot, index) => (
+                {occupiedSlots.map((slot, index) => (
                   <div
-                    key={index}
+                    key={slot._id || index}
                     className="relative group bg-gray-50 hover:bg-white border border-gray-200 hover:border-black/20 rounded-xl p-4 transition-all duration-200"
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -277,7 +344,6 @@ export function DateTimeSelection({ building, room }: DateTimeSelectionProps) {
                       <p className="font-semibold text-gray-900">{slot.title || "Bez tytułu"}</p>
                       <p className="text-sm text-gray-500 mt-1">Rezerwacja: {slot.user}</p>
                     </div>
-                    {/* Visual overlap indicator if needed later */}
                   </div>
                 ))}
               </div>
