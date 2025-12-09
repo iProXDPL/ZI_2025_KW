@@ -24,6 +24,12 @@ export const createRoom = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Budynek nie znaleziony" });
     }
 
+    if (building.floors !== undefined && floor > building.floors) {
+      return res.status(400).json({ 
+        message: `Piętro nie może być wyższe niż liczba pięter w budynku (${building.floors})` 
+      });
+    }
+
     const existing = await Room.findOne({ name, building: buildingId });
     if (existing) {
       return res.status(400).json({ message: "Sala o tej nazwie już istnieje w tym budynku" });
