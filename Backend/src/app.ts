@@ -6,7 +6,8 @@ import buildingRoutes from "./routes/buildings";
 import roomRoutes from "./routes/rooms";
 import reservationRoutes from "./routes/reservationRoutes";
 import * as dotenv from "dotenv";
-dotenv.config({ path: __dirname + "../../../.env" });
+import path from "path";
+dotenv.config({ path: path.join(__dirname, "../../../.env") });
 var cors = require("cors");
 
 const app = express();

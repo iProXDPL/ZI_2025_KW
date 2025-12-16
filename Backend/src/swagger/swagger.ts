@@ -1,4 +1,8 @@
 import swaggerJSDoc from "swagger-jsdoc";
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config({ path: path.join(__dirname, "../../../.env") });
 
 const options: swaggerJSDoc.Options = {
   definition: {
@@ -10,12 +14,8 @@ const options: swaggerJSDoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:3000",
-        description: "Serwer lokalny",
-      },
-      {
-        url: "/",
-        description: "Serwer produkcyjny",
+        url: process.env.VITE_API_BASE_URL || "http://localhost:3000",
+        description: "Serwer API",
       },
     ],
     components: {
