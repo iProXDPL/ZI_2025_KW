@@ -8,7 +8,16 @@ const options: swaggerJSDoc.Options = {
       version: "1.0.0",
       description: "API do zarządzania salami",
     },
-    servers: [{ url: "http://localhost:3000" }],
+    servers: [
+      {
+        url: "http://localhost:3000",
+        description: "Serwer lokalny",
+      },
+      {
+        url: "/",
+        description: "Serwer produkcyjny",
+      },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
