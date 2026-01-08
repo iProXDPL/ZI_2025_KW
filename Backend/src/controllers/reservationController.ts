@@ -1,29 +1,35 @@
 import { Request, Response } from "express";
 import Reservation from "../models/Reservation";
 import Room from "../models/Room";
+import { 
+  validateReservationInput, 
+  parseReservationDates, 
+  validateReservationDates 
+} from "../utils/reservationDomain";
 
 export const createReservation = async (req: Request, res: Response) => {
   try {
     const { roomId, date, start, end, title } = req.body;
 
-    if (!roomId || !date || !start || !end) {
-      return res.status(400).json({ message: "Wszystkie pola są wymagane" });
+    const inputError = validateReservationInput({ roomId, date, start, end });
+    if (inputError) {
+      return res.status(400).json({ message: inputError });
+    }
+
+    const parsedDates = parseReservationDates(date, start, end);
+    if (!parsedDates) {
+      return res.status(400).json({ message: "Nieprawidłowy format daty lub godziny" });
+    }
+    const { startDateTime, endDateTime } = parsedDates;
+
+    const logicError = validateReservationDates(startDateTime, endDateTime);
+    if (logicError) {
+      return res.status(400).json({ message: logicError });
     }
 
     const room = await Room.findById(roomId);
     if (!room) {
       return res.status(404).json({ message: "Sala nie znaleziona" });
-    }
-
-    const startDateTime = new Date(`${date}T${start}:00`);
-    const endDateTime = new Date(`${date}T${end}:00`);
-
-    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
-        return res.status(400).json({ message: "Nieprawidłowy format daty lub godziny" });
-    }
-
-    if (startDateTime >= endDateTime) {
-      return res.status(400).json({ message: "Godzina zakończenia musi być później niż rozpoczęcia" });
     }
 
     const conflict = await Reservation.findOne({

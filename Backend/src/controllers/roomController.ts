@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Room from "../models/Room";
 import Building from "../models/Building";
+import { validateRoomInput, validateRoomFloor } from "../utils/roomDomain";
 
 export const getRooms = async (req: Request, res: Response) => {
   try {
@@ -15,8 +16,9 @@ export const createRoom = async (req: Request, res: Response) => {
   try {
     const { name, buildingId, capacity, type, floor } = req.body;
     
-    if (!name || !buildingId) {
-      return res.status(400).json({ message: "Nazwa sali i ID budynku są wymagane" });
+    const inputError = validateRoomInput({ name, buildingId });
+    if (inputError) {
+      return res.status(400).json({ message: inputError });
     }
 
     const building = await Building.findById(buildingId);
@@ -24,10 +26,9 @@ export const createRoom = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Budynek nie znaleziony" });
     }
 
-    if (building.floors !== undefined && floor > building.floors) {
-      return res.status(400).json({ 
-        message: `Piętro nie może być wyższe niż liczba pięter w budynku (${building.floors})` 
-      });
+    const floorError = validateRoomFloor(floor, building.floors);
+    if (floorError) {
+        return res.status(400).json({ message: floorError });
     }
 
     const existing = await Room.findOne({ name, building: buildingId });

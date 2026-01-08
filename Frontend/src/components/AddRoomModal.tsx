@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { XIcon } from "lucide-react";
-
-const API_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000") + "/api";
+import { useAddRoom } from "../hooks/useAddRoom";
 
 interface AddRoomModalProps {
   buildingId: string;
@@ -12,56 +11,16 @@ interface AddRoomModalProps {
 }
 
 export function AddRoomModal({ buildingId, buildingName, maxFloors, onClose, onSuccess }: AddRoomModalProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    capacity: "",
-    floor: "",
+  const { formData, loading, error, handleChange, submitRoom } = useAddRoom({
+    buildingId,
+    maxFloors,
+    onSuccess,
+    onClose
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    if (parseInt(formData.floor) > maxFloors) {
-      setError(`Piętro nie może być wyższe niż ${maxFloors}`);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/rooms`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": token ? `Bearer ${token}` : ""
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          buildingId: buildingId,
-          capacity: parseInt(formData.capacity),
-          type: "Sala",
-          floor: parseInt(formData.floor)
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create room");
-      }
-
-      const newRoom = await response.json();
-      onSuccess(newRoom);
-      onClose();
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Błąd podczas dodawania sali');
-    } finally {
-      setLoading(false);
-    }
+    submitRoom();
   };
 
   return (
@@ -94,12 +53,7 @@ export function AddRoomModal({ buildingId, buildingName, maxFloors, onClose, onS
             <input
               type="text"
               value={formData.name}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  name: e.target.value,
-                })
-              }
+              onChange={(e) => handleChange("name", e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black"
               placeholder="np. Sala Konferencyjna A"
               required
@@ -112,12 +66,7 @@ export function AddRoomModal({ buildingId, buildingName, maxFloors, onClose, onS
             <input
               type="number"
               value={formData.capacity}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  capacity: e.target.value,
-                })
-              }
+              onChange={(e) => handleChange("capacity", e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black"
               placeholder="np. 50"
               required
@@ -129,12 +78,7 @@ export function AddRoomModal({ buildingId, buildingName, maxFloors, onClose, onS
             <input
               type="number"
               value={formData.floor}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  floor: e.target.value,
-                })
-              }
+              onChange={(e) => handleChange("floor", e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black"
               placeholder={`np. 2 (max ${maxFloors})`}
               required

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Building from "../models/Building";
+import { validateBuildingInput } from "../utils/buildingDomain";
 
 export const getBuildings = async (req: Request, res: Response) => {
   try {
@@ -14,8 +15,9 @@ export const createBuilding = async (req: Request, res: Response) => {
   try {
     const { name, address, description, floors } = req.body;
     
-    if (!name) {
-      return res.status(400).json({ message: "Nazwa budynku jest wymagana" });
+    const inputError = validateBuildingInput({ name, address, description, floors });
+    if (inputError) {
+      return res.status(400).json({ message: inputError });
     }
 
     const existing = await Building.findOne({ name });

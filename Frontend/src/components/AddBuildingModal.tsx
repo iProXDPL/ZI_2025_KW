@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { XIcon } from 'lucide-react';
-
-const API_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000") + "/api";
+import { useAddBuilding } from '../hooks/useAddBuilding';
 
 interface AddBuildingModalProps {
   title: string;
@@ -20,50 +19,18 @@ export function AddBuildingModal({
   onClose,
   onSuccess
 }: AddBuildingModalProps) {
-  const [formData, setFormData] = useState({
-    title: title || '',
-    description: description || '',
-    address: address || '',
-    floors: floors || ''
+  const { formData, loading, error, handleChange, submitBuilding } = useAddBuilding({
+      title,
+      description,
+      address,
+      floors,
+      onClose,
+      onSuccess
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/buildings`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": token ? `Bearer ${token}` : ""
-        },
-        body: JSON.stringify({
-          name: formData.title,
-          address: formData.address,
-          description: formData.description,
-          floors: parseInt(formData.floors)
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create building");
-      }
-
-      const newBuilding = await response.json();
-      onSuccess(newBuilding);
-      onClose();
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Błąd podczas dodawania budynku');
-    } finally {
-      setLoading(false);
-    }
+    submitBuilding();
   };
 
   return <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -82,33 +49,21 @@ export function AddBuildingModal({
             <label className="block text-sm font-medium mb-2">
               Nazwa budynku
             </label>
-            <input type="text" value={formData.title} onChange={e => setFormData({
-            ...formData,
-            title: e.target.value
-          })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black" required />
+            <input type="text" value={formData.title} onChange={e => handleChange('title', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black" required />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Opis</label>
-            <textarea value={formData.description} onChange={e => setFormData({
-            ...formData,
-            description: e.target.value
-          })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black" rows={3} />
+            <textarea value={formData.description} onChange={e => handleChange('description', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black" rows={3} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Adres</label>
-            <input type="text" value={formData.address} onChange={e => setFormData({
-            ...formData,
-            address: e.target.value
-          })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black" required />
+            <input type="text" value={formData.address} onChange={e => handleChange('address', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black" required />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">
               Liczba pięter
             </label>
-            <input type="number" value={formData.floors} onChange={e => setFormData({
-            ...formData,
-            floors: e.target.value
-          })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black" min="1" />
+            <input type="number" value={formData.floors} onChange={e => handleChange('floors', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black" min="1" />
           </div>
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="flex-1 px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">
